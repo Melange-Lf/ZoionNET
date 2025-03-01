@@ -1,0 +1,40 @@
+git gud:
+	-audio preprocessing
+		-FT output
+
+Hidden Markov chain*:
+	uses the observed variables to get back the target ones, if target ones are modelled as markov chains with transition prob
+
+>>Label Smoothening:
+	y(n) = (1-e)dn + e/Nc   (for e v.smol >0)
+	having rough encodings, which would drive the pre-softmax output to be +inf(correct) and -inf(wrong class) outputs (much too confident)
+		you would instead have encodings as [e/Nc e/Nc .. (1-e).... e/Nc] such that pre-softmax doesn't try to go towards infinities
+		this acts as a regularization step
+
+Audio Preprocessing:
+	-sampling rate, and 
+	-FT
+	-STFT, FT is applied on the entirety of the waveform, which lacks temporal info, so STFT applies on small(overlapping windows) 
+		terms- hop length(in samples, how many does the window after each computation)
+		window size vs frame size(in samples, how many samples a single FT is applied on, most times they are same, sometimes frame is higher)
+		above^ usually are powers of 2, to get speedier computation in FT
+	-power waveforms:
+	-mel log (check the different kind in ref3's archi):
+
+base1:
+	Architecture:
+		using mel log specs, we apply CNN first
+polyphonic intro ref3 (https://github.com/sharathadavanne/sed-crnn):
+	Ideas:
+		SED detects both onset and offset (start of occurence and end of occurence)
+		Monophonic SED detects only one class at a time, Polyphonic does multiple
+		CNN understand relations between time and frequency w/ filters shifted in both of these,
+			but would lack longer temporal context information
+		RNN can incorporat earlier time windows, solving the above problem, but RNNs do not easily
+			capture the invariance in the frequency domain
+	Archi: 
+		Do look into the different types of mel specs they mentioned in their preprocessing step
+		Take log mel specs, convolute(same) + max_pool(Fx1, no pooling wrt time), stack the output channels so (Fxt -> F'xMxt -> M*F'xt)
+		Then feed this in rnns (deep if you want), which finally is taken into feedforward FC layers to give output, which is binarized with threshold value
+base2 dissimilarity (https://github.com/LorisNanni):
+	HASC (Heterogeneous Auto-Similarities of Characteristics), processes spectrograms
