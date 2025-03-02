@@ -4,7 +4,9 @@ import torch
 
 from torch.utils.data import Dataset
 from PIL import Image
-from typing import Tuple
+from typing import Tuple, List, Dict
+import pandas as pd
+import torchvision
 
 """
 Contains various utility functions for PyTorch model training and saving.
@@ -144,3 +146,47 @@ class ImageFolderCustom(Dataset):
 
 # test_data_custom = ImageFolderCustom(targ_dir=test_dir, 
 #                                      transform=test_transforms)
+
+# 1. Subclassesing
+class SoftLabelImageCustom(Dataset):
+    
+    # 2. Initialize with a targ_dir (contains all images)
+    def __init__(self, csv: pd.DataFrame, targ_dir: str, classes: int, extension='jpg') -> None:
+        
+        # 3. Create class attributes
+        # Get all image paths
+        self.paths = list(pathlib.Path(targ_dir).glob(f"*.{extension}")) # note: you'd have to update this if you've got .png's or .jpeg's
+        self.classes = classes
+        self.csv = csv
+
+        # Create a mapping from image identifier (here, file name) to soft labels.
+        # Adjust if your CSV uses full paths or a different identifier.
+        self.label_dict = {}
+        for _, row in self.csv.iterrows():
+            image_id = row["Path"]  # e.g. 'image1.jpg'
+            # Assume that the next columns correspond to the soft-label probabilities.
+            # This extracts the first 'classes' probability values.
+            soft_label = row.iloc[1:1+classes].values.astype(float)
+            self.label_dict[image_id] = soft_label
+
+    # 4. Make function to load images
+    def load_image(self, index: int) -> Image.Image:
+        "Opens an image via a path and returns it."
+        image_path = self.paths[index]
+        return Image.open(image_path)
+    
+    # 5. Overwrite the __len__() method (optional but recommended for subclasses of torch.utils.data.Dataset)
+    def __len__(self) -> int:
+        "Returns the total number of samples."
+        return len(self.paths)
+    
+    # 6. Overwrite the __getitem__() method (required for subclasses of torch.utils.data.Dataset)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+        "Returns one sample of data, data and label (X, y)."
+        img = self.load_image(index)
+        img_path  = self.paths[index].name
+
+        soft_label = self.label_dict.get(img_path)
+        soft_label_tensor = torch.tensor(soft_label, dtype=torch.float32)
+
+        return torchvision.transforms.ToTensor(img), soft_label_tensor
