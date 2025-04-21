@@ -2,7 +2,7 @@
 
 This Project is an extenion of the of submission (under the same name) to the [IEEE Comsoc Student competiion 2024](https://www.comsoc.org/membership/ieee-comsoc-student-competition/winners), where the submission earned an honorary mention (ie top 15 worldwide).
 
-This repo aims to provide a more powerful and refined approach on the same problem, with use of other architecutres like AST, and CRNN and more advance edge devices.
+This repo aims to provide a more powerful and refined approach over the original submission on the same problem, with use of other architecutres like AST, and CRNN and more advance edge devices.
 
 ## Files and Folders
 
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 ### Current Progress/ To be done
 
 - model for crnn ready
-- model for ast ready
+- model for ast to be reworked
 - preprocessing scripts ready (to be pushed)
 - old abstract to be pushed
 - work on script for integrating low + high power models started

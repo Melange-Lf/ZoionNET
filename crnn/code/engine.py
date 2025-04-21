@@ -188,7 +188,7 @@ def train(model: torch.nn.Module,
                "test_metric": []
     }
     
-    early_stopper = EarlyStopper(patience=patience, min_delta=min_delta)
+    # early_stopper = EarlyStopper(patience=patience, min_delta=min_delta)
 
     # Make sure model on target device
     model.to(device)
@@ -222,9 +222,9 @@ def train(model: torch.nn.Module,
         results["test_loss"].append(test_loss)
         results["test_metric"].append(test_metric)
 
-        if early_stopper.early_stop(test_loss):             
-            print(f"early stopping at epoch {epoch}")
-            break
+        # if early_stopper.early_stop(test_loss):             
+        #     print(f"early stopping at epoch {epoch}")
+        #     break
 
     # Return the filled results at the end of the epochs
     return results

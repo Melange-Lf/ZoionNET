@@ -7,6 +7,7 @@ from PIL import Image
 from typing import Tuple, List, Dict
 import pandas as pd
 import torchvision
+import numpy as np
 
 """
 Contains various utility functions for PyTorch model training and saving.
@@ -138,6 +139,43 @@ class ImageFolderCustom(Dataset):
         else:
             return img, class_idx # return data, label (X, y)
         
+
+
+
+class NumpyFolderCustom(Dataset):
+    
+    # 2. Initialize with a targ_dir and transform (optional) parameter
+    def __init__(self, targ_dir: str) -> None:
+        
+        # 3. Create class attributes
+        # Get all image paths
+        self.paths = list(pathlib.Path(targ_dir).glob("*/*.npy")) # note: you'd have to update this if you've got .png's or .jpeg's
+        
+        # Create classes and class_to_idx attributes
+        self.classes, self.class_to_idx = find_classes(targ_dir)
+
+    # 4. Make function to load images
+    def load_numpy_array(self, index: int) -> Image.Image:
+        "Opens an array via a path and returns it."
+        array_path = self.paths[index]
+        return np.load(array_path) 
+    
+    # 5. Overwrite the __len__() method (optional but recommended for subclasses of torch.utils.data.Dataset)
+    def __len__(self) -> int:
+        "Returns the total number of samples."
+        return len(self.paths)
+    
+    # 6. Overwrite the __getitem__() method (required for subclasses of torch.utils.data.Dataset)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+        "Returns one sample of data, data and label (X, y)."
+        array = self.load_numpy_array(index)
+        class_name  = self.paths[index].parent.name # expects path in data_folder/class_name/image.jpeg
+        class_idx = self.class_to_idx[class_name]
+
+        
+        return array, class_idx # return data, label (X, y)
+
+
 
 # test_transforms = transforms.Compose([
 #     transforms.Resize((64, 64)),
