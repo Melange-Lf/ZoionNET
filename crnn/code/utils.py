@@ -16,6 +16,42 @@ import torch
 from pathlib import Path
 from torch.utils.data import DataLoader, TensorDataset
 
+
+import matplotlib.pyplot as plt
+
+def plot_training_history(history):
+    
+    train_loss = history['train_loss']
+    train_metric = history['train_metric'] 
+    test_loss = history['test_loss']
+    test_metric = history['test_metric']
+    
+    epochs = range(1, len(train_loss) + 1)
+
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, train_loss, label='Train Loss', marker='o')
+    plt.plot(epochs, test_loss, label='Test Loss', marker='o')
+    plt.title('Loss over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, train_metric, label='Train Metric', marker='o')
+    plt.plot(epochs, test_metric, label='Test Metric', marker='o')
+    plt.title('Metric over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Metric')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
 def save_model(model: torch.nn.Module,
                target_dir: str,
                model_name: str):
@@ -228,3 +264,53 @@ class SoftLabelImageCustom(Dataset):
         soft_label_tensor = torch.tensor(soft_label, dtype=torch.float32)
 
         return torchvision.transforms.ToTensor(img), soft_label_tensor
+    
+
+
+
+    
+# 1. Subclassesing
+class SoftLabelFbankCustom(Dataset):
+    
+    # 2. Initialize with a targ_dir (contains all fbanks)
+    def __init__(self, csv,  classes, target_dir = None) -> None:
+        
+        # 3. Create class attributes
+        self.classes = classes
+        if target_dir:
+            self.target_dir = target_dir + "/"
+        else:
+            self.target_dir = ''
+        
+        csv = pd.read_csv(csv)
+        self.csv = csv
+        
+        if len(self.csv.columns) > classes + 1:
+            self.csv = self.csv.drop(columns=['true_label', 'predicted_label', 'correct'])
+
+        # Create a mapping from fbank identifier (here, file name) to soft labels.
+        # Adjust if your CSV uses full paths or a different identifier.
+        self.label_dict = {}
+        for _, row in self.csv.iterrows():
+            fbank_id = row["file_path"]  # e.g. 'fbank1.pt'
+            # Assume that the next columns correspond to the soft-label probabilities.
+            # This extracts the first 'classes' probability values.
+            soft_label = row.iloc[1:1+classes].values.astype(float)
+            self.label_dict[fbank_id] = soft_label
+
+    
+    def __len__(self) -> int:
+        "Returns the total number of samples."
+        return len(self.label_dict.keys())
+    
+    def __getitem__(self, index: int):
+        "Returns one sample of data, data and label (X, y)."
+        fbank_path = self.csv.iloc[index]["file_path"]
+        # print(self.target_dir, fbank_path)
+        fbank = torch.load(self.target_dir + fbank_path).unsqueeze(2) # crnn expects a channel dimension, fbanks don't have that
+
+
+        soft_label = self.label_dict.get(fbank_path)
+        soft_label_tensor = torch.tensor(soft_label, dtype=torch.float32)
+
+        return fbank, soft_label_tensor

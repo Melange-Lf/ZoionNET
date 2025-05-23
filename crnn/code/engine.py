@@ -11,7 +11,8 @@ def train_step(model: torch.nn.Module,
                loss_fn: torch.nn.Module, 
                metric_fn,
                optimizer: torch.optim.Optimizer,
-               device: torch.device) -> Tuple[float, float]:
+               device: torch.device, 
+               scheduler) -> Tuple[float, float]:
     """Trains a PyTorch model for a single epoch.
 
     Turns a target PyTorch model to training mode and then
@@ -37,8 +38,17 @@ def train_step(model: torch.nn.Module,
     # Setup train loss and train metric values
     train_loss, train_metric = 0, 0
 
+    
+    length = len(dataloader)
+    batch_print = length // 3
+
+    print("starting training batches:")
     # Loop through data loader data batches
     for batch, (X, y) in enumerate(dataloader):
+        if batch % batch_print == 0:
+            print(f"{batch} / {length}")
+
+            
         # Send data to target device
         X, y = X.to(device), y.to(device)
 
@@ -58,10 +68,13 @@ def train_step(model: torch.nn.Module,
         # 5. Optimizer step
         optimizer.step()
 
+        if scheduler:
+            scheduler.step()
+
         # Calculate and accumulate metric across all batches
         # y_pred_class = torch.argmax(torch.softmax(y_pred, dim=1), dim=1)
         y_pred_adjusted = torch.sigmoid(y_pred)
-        train_metric += metric_fn(y_pred_adjusted, y).sum().item()/len(y_pred)
+        train_metric += metric_fn(y_pred_adjusted, y)
 
     # Adjust metrics to get average loss and metric per batch 
     train_loss = train_loss / len(dataloader)
@@ -113,7 +126,7 @@ def test_step(model: torch.nn.Module,
             # Calculate and accumulate metric
             # test_pred_labels = test_pred_logits.argmax(dim=1)
             y_pred_adjusted = torch.sigmoid(test_pred_logits)
-            test_metric += (metric_fn(y_pred_adjusted, y).sum().item()/len(y_pred_adjusted))
+            test_metric += metric_fn(y_pred_adjusted, y)
 
     # Adjust metrics to get average loss and metric per batch 
     test_loss = test_loss / len(dataloader)
@@ -148,8 +161,9 @@ def train(model: torch.nn.Module,
           metric_fn,
           epochs: int,
           device: torch.device,
-          patience: int,
-          min_delta: int) -> Dict[str, List]:
+          check_dir: str,
+          checkpoint_dict: dict =None,
+          scheduler =None) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
     Passes a target PyTorch models through train_step() and test_step()
@@ -181,17 +195,26 @@ def train(model: torch.nn.Module,
               test_loss: [1.2641, 1.5706],
               test_metric: [0.3400, 0.2973]} 
     """
-    # Create empty results dictionary
-    results = {"train_loss": [],
-               "train_metric": [],
-               "test_loss": [],
-               "test_metric": []
-    }
+    if checkpoint_dict:
+        results = {"train_loss": checkpoint_dict['train_loss'],
+                "train_metric": checkpoint_dict['train_metric'],
+                "test_loss": checkpoint_dict['test_loss'],
+                "test_metric": checkpoint_dict['test_metric']
+        }
+    else:
+        results = {"train_loss": [],
+                "train_metric": [],
+                "test_loss": [],
+                "test_metric": []
+        }
     
     # early_stopper = EarlyStopper(patience=patience, min_delta=min_delta)
 
     # Make sure model on target device
     model.to(device)
+
+    best_model_path = check_dir + "/best_model.pth"
+    latest_model_path = check_dir + "/latest_model.pth"
 
     # Loop through training and testing steps for a number of epochs
     for epoch in tqdm(range(epochs)):
@@ -200,7 +223,9 @@ def train(model: torch.nn.Module,
                                           loss_fn=loss_fn,
                                           metric_fn=metric_fn,
                                           optimizer=optimizer,
-                                          device=device)
+                                          device=device, 
+                                          scheduler=scheduler)
+        
         test_loss, test_metric = test_step(model=model,
           dataloader=test_dataloader,
           loss_fn=loss_fn,
@@ -221,6 +246,18 @@ def train(model: torch.nn.Module,
         results["train_metric"].append(train_metric)
         results["test_loss"].append(test_loss)
         results["test_metric"].append(test_metric)
+        
+        if epoch == 0:
+            best_model_results = test_loss
+            torch.save({**results, 'model_state_dict': model.state_dict(), 'optim_state_dict': optimizer.state_dict()}, best_model_path)
+
+        if test_loss < best_model_results:
+            best_model_results = test_loss
+            torch.save({**results, 'model_state_dict': model.state_dict(), 'optim_state_dict': optimizer.state_dict()}, best_model_path)
+        
+        torch.save({**results, 'model_state_dict': model.state_dict(), 'optim_state_dict': optimizer.state_dict()}, latest_model_path)
+
+
 
         # if early_stopper.early_stop(test_loss):             
         #     print(f"early stopping at epoch {epoch}")
