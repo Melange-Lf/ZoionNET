@@ -11,7 +11,7 @@
 
 --------
 
-This Project is an extenion of the of submission (under the same name) to the [IEEE Comsoc Student competiion 2024](https://www.comsoc.org/membership/ieee-comsoc-student-competition/winners), where the submission earned an honorary mention (ie top 15 worldwide).
+This Project is an extenion of the of submission (under the same name) to the [IEEE Comsoc Student competiion 2024](https://www.comsoc.org/membership/ieee-comsoc-student-competition/winners), where the submission earned a top 15 spot worldwide.
 
 This repo aims to provide a more powerful and refined approach over the original submission on the same problem, with use of other architecutres like AST, and CRNN and more advance edge devices.
 
