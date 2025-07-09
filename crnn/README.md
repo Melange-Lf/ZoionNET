@@ -14,7 +14,7 @@ The subsection contains the following files:
 - `code` directory: Contains `crnn.ipynb`, the main implementation, `engine.py` and `utils.py`
 ` `utils.py`: Contains other utility functions for saving/loading models, loading data, base script sourced from [mrdbourke](https://github.com/mrdbourke) for simplicity, then modfied to suit our specific purposes.
 - `engine.py`: Contains functions for training purpose of pytorch models (credit: [mrdbourke](https://github.com/mrdbourke)).
-
+- `run.ipynb`: The original run over ESC-50 without pretraining on a larger dataset to test robustness of the model
 
 ## Architecture Implementation(WIP)
 
